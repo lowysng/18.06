@@ -1,10 +1,14 @@
 import numpy as np
 import chapter1 as c1 
 
-def gaussian_elimination(augmented_matrix_, inplace=False):
+def gaussian_elimination(augmented_matrix_, inplace=False, getL=False):
     """Perform Gaussian elimination on input [A b], 
     where A is the coefficient matrix representing a
     linear system and b is the RHS of the set of linear equations.
+
+    Parameters
+    ----------
+        getL: store and return the multipliers of Gaussian elimination
 
     Example: Solve Ax = b, where
 
@@ -14,11 +18,12 @@ def gaussian_elimination(augmented_matrix_, inplace=False):
 
     >>> A = np.array([[3, 6, 9], [0, 2, -2], [0, 0, 1]])
     >>> b = np.array([[3, 8, 9]])
-    >>> augmented_matrix = np.transpose(np.vstack((A, b)))
+    >>> augmented_matrix = np.vstack((A, b))
     >>> augmented_matrix
-    [[ 3  0  0  3]
-    [ 6  2  0  8]
-    [ 9 -2  1  9]]
+    [[ 3  6  9]
+    [ 0  2 -2]
+    [ 0  0  1]
+    [ 3  8  9]]
     >>> gaussian_elimination(augmented_matrix, inplace=True)
     >>> x = back_sub(augmented_matrix) # see back_sub() below
     >>> x
@@ -31,8 +36,11 @@ def gaussian_elimination(augmented_matrix_, inplace=False):
     else:
         augmented_matrix = augmented_matrix_.copy()
 
+    augmented_matrix = np.transpose(augmented_matrix)
+
     m = augmented_matrix.shape[0]       # number of rows of matrix A
     n = augmented_matrix.shape[1] - 1   # number of columns of matrix A
+    multipliers = np.eye(m)
     pivot_index = 0
 
     while pivot_index < m:
@@ -60,10 +68,15 @@ def gaussian_elimination(augmented_matrix_, inplace=False):
             elimination_row = augmented_matrix[elimination_index]
             elimination_entry = elimination_row[pivot_index]
             multiplier = elimination_entry/pivot_entry
+            multipliers[elimination_index, pivot_index] = multiplier
             augmented_matrix[elimination_index] = elimination_row - (pivot_row * multiplier)    
             elimination_index += 1
         pivot_index += 1
-    return augmented_matrix
+
+    if getL:
+        return multipliers, augmented_matrix
+    else:
+        return augmented_matrix
 
 def back_sub(augmented_matrix):
     """Perform backsubstituion on input [U d],
@@ -71,6 +84,7 @@ def back_sub(augmented_matrix):
     a linear system and d is the RHS of the set of linear
     equations. Too see input format, refer to gaussian_elimination().
     """
+    augmented_matrix = np.transpose(augmented_matrix)
     m = augmented_matrix.shape[0]
     n = augmented_matrix.shape[1] - 1
     for i in range(m):
@@ -89,3 +103,51 @@ def back_sub(augmented_matrix):
 
 def matrix_matrix_mult(A, B):
     return np.array([c1.lin_comb(A, col) for col in B])
+
+def inverse(A):
+    """Compute the inverse of a matrix A using Gauss-Jordan elimination.
+
+    >>> A = np.array([[2, -1, 0], [-1, 2, -1], [0, -1, 2]])
+    >>> A_inverse = inverse(A)
+    >>> A_inverse
+    [[0.75 0.5  0.25]
+    [0.5  1.   0.5 ]
+    [0.25 0.5  0.75]]
+    >>> matrix_matrix_mult(A, A_inverse)
+    [[ 1.00000000e+00 -8.32667268e-17  0.00000000e+00]
+    [ 0.00000000e+00  1.00000000e+00 -1.11022302e-16]
+    [ 0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+    >>> np.around(matrix_matrix_mult(A, A_inverse))
+    [[ 1. -0.  0.]
+    [ 0.  1. -0.]
+    [ 0.  0.  1.]]
+    """
+    m, n = A.shape
+    assert m == n, "A must be a square matrix"
+    augmented_matrix = np.vstack((A, np.eye(A.shape[0])))
+
+    # eliminate entries below the main diagonal
+    gaussian_elimination(augmented_matrix, inplace=True)
+
+    augmented_matrix = np.transpose(augmented_matrix)
+    
+    # eliminate entries above the main diagonal
+    for pivot_index in range(m):
+        pivot_row = augmented_matrix[pivot_index]
+        pivot_entry = pivot_row[pivot_index]
+        for elimination_index in range(pivot_index):
+            elimination_row = augmented_matrix[elimination_index]
+            elimination_entry = elimination_row[pivot_index]
+            multiplier = elimination_entry/pivot_entry
+            augmented_matrix[elimination_index] = elimination_row - (pivot_row * multiplier)
+    
+    # convert pivots into 1's
+    for pivot_index in range(m):
+        pivot = augmented_matrix[pivot_index, pivot_index]
+        augmented_matrix[pivot_index] /= pivot
+    
+    return np.hsplit(augmented_matrix, 2)[1]
+
+A = np.array([[2, 1, 0], [1, 2, 1], [0, 1, 2]], dtype=float)
+L, U = gaussian_elimination(A, getL=True)
+print(np.hstack((L, U)))

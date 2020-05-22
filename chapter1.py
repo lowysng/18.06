@@ -13,7 +13,7 @@ matrix_vect_mult    : compute the matrix-vector multiplication of a matrix and a
 Example:
 >>> A = np.array([[1, 1, 1], [1, 2, 2], [1, 2, 3]])
 >>> x = np.array([3, 2, 1])
->>> matrix_vect_mult(np.transpose(A), x)
+>>> matrix_vect_mult(A, x)
 [6, 9, 10]
 """
 
@@ -24,4 +24,4 @@ dot_product = lambda v, w: np.sum(v * w)
 length = lambda v: dot_product(v, v) ** 0.5
 unit_vector = lambda v: v / length(v)
 angle_btwn_vector = lambda v, w: np.arccos((dot_product(v, w)/(length(v) * length(w))))
-matrix_vect_mult = lambda A, x: lin_comb(A, x)
+matrix_vect_mult = lambda A, x: lin_comb(np.transpose(A), x)
