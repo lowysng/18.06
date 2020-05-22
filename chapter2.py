@@ -73,6 +73,9 @@ def gaussian_elimination(augmented_matrix_, inplace=False, getL=False):
             elimination_index += 1
         pivot_index += 1
 
+    multipliers = np.transpose(multipliers)
+    augmented_matrix = np.transpose(augmented_matrix)
+
     if getL:
         return multipliers, augmented_matrix
     else:
@@ -128,7 +131,6 @@ def inverse(A):
 
     # eliminate entries below the main diagonal
     gaussian_elimination(augmented_matrix, inplace=True)
-
     augmented_matrix = np.transpose(augmented_matrix)
     
     # eliminate entries above the main diagonal
@@ -148,6 +150,24 @@ def inverse(A):
     
     return np.hsplit(augmented_matrix, 2)[1]
 
-A = np.array([[2, 1, 0], [1, 2, 1], [0, 1, 2]], dtype=float)
-L, U = gaussian_elimination(A, getL=True)
-print(np.hstack((L, U)))
+def ALU_factorize(A):
+    """Factorize A into LU where L is a lower triangular, and U is upper triangular
+    """
+    m, n = A.shape
+    assert m == n, "A must be a square matrix"
+    A = A.astype(float)
+    L, U = gaussian_elimination(A, getL=True)
+    return L, U
+
+def ALDU_factorize(A):
+    """Factorize A into LDU where L and U both have 1's on their main diagonals, and
+    D contains the pivot.
+    """
+    L, U = ALU_factorize(A)
+    D = np.eye(A.shape[0])
+    m, n = A.shape
+    for pivot_index in range(m):
+        pivot_entry = U[pivot_index, pivot_index]
+        D[pivot_index, pivot_index] = pivot_entry
+        U[:, pivot_index] = U[:, pivot_index] / pivot_entry
+    return L, D, U
